@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import Header from './Header/Header';
 import { getCurrencyNames, getCurrencyRates } from '../services/currencyService';
@@ -23,6 +23,19 @@ const MainContent = styled.div`
   background-color: white;
 `;
 
+const ErrorWrapper = styled.div`
+  justify-content: center; 
+  text-align: center;
+  color: #ca1616;
+  font-size: 25px;
+`;
+
+const LoadingWrapper = styled.div`
+  align-self: center;
+  text-align: center;
+  color: #205ea9;
+  font-size: 25px;
+`;
 
 const CurrencyConverter = () => {
 
@@ -32,6 +45,8 @@ const CurrencyConverter = () => {
     const [isForward, setisForward] = useState(true);
     const [exchangeRate, setExchangeRate] = useState();
     const [amount, setAmount] = useState('1.00');
+    const [error, serError] = useState();
+    const [isLoading, setIsLoading] = useState(false);
 
     let sourceAmount;
     let targetAmount;
@@ -44,37 +59,44 @@ const CurrencyConverter = () => {
         sourceAmount = (amount / exchangeRate).toFixed(2);
     };
 
+    const fetchCurrencyNames = useCallback(
+        async () => {
+            try {
+                const response = await getCurrencyNames();
+                const names = modifyNames(response.data);
+                !sourceCurrency && setSourceCurrency(names[0].abw)
+                !targetCurrency && setTargetCurrency(names[1].abw)
+                setCurrencyNames(names);
+                setIsLoading(false);
+            } catch (error) {
+                console.error('Error fetching currency names:', error);
+                serError(error);
+                setIsLoading(false);
+            }
+        },
+      [sourceCurrency, targetCurrency],
+    );
 
-
+    const fetchExchangeRate = useCallback(
+        async () => {
+            try {
+                const response = await getCurrencyRates();
+                setExchangeRate(calculateExchangeRate(sourceCurrency, targetCurrency, response.data));
+            } catch (error) {
+                console.error('Error fetching exchange rate:', error);
+                serError(error);
+                setIsLoading(false);
+                setIsLoading(false);
+            }
+        },
+      [sourceCurrency, targetCurrency],
+    );
 
     useEffect(() => {
+        setIsLoading(true);
         fetchCurrencyNames();
         fetchExchangeRate();
-    }, [sourceCurrency, targetCurrency]);
-
-    const fetchCurrencyNames = async () => {
-        try {
-            const response = await getCurrencyNames();
-            console.log(response.data,'fetchCurrencyNames');
-            const res = modifyNames(response.data)
-            console.log(res);
-            !sourceCurrency && setSourceCurrency(res[0].abw)
-            !targetCurrency && setTargetCurrency(res[1].abw)
-            setCurrencyNames(res);
-        } catch (error) {
-            console.error('Error fetching currency names:', error);
-        }
-    };
-
-    const fetchExchangeRate = async () => {
-        try {
-            const response = await getCurrencyRates();
-            console.log(response.data, 'fetchExchangeRate');
-            setExchangeRate(calculateExchangeRate(sourceCurrency, targetCurrency, response.data));
-        } catch (error) {
-            console.error('Error fetching exchange rate:', error);
-        }
-    };
+    }, [fetchCurrencyNames, fetchExchangeRate, sourceCurrency, targetCurrency]);
 
     const handleChangeSourceAmount = (e) => {
         setisForward(true);
@@ -86,6 +108,31 @@ const CurrencyConverter = () => {
         setAmount(e.target.value);
     };
 
+    if (error) {
+        return (
+            <Container>
+                <MainContent>
+                    <ErrorWrapper>
+                        Sorry, something went wrong...
+                        <br />
+                        Error: {error.message}
+                    </ErrorWrapper>
+                </MainContent>
+            </Container>
+        );
+    };
+
+    if (isLoading) {
+        return (
+            <Container>
+                <MainContent>
+                    <LoadingWrapper>
+                        Loading...
+                    </LoadingWrapper>
+                </MainContent>
+            </Container>
+        );
+    };
 
     return (
         <Container>
