@@ -47,7 +47,8 @@ const CurrencyConverter = () => {
 	const [exchangeRate, setExchangeRate] = useState();
 	const [amount, setAmount] = useState('1.00');
 	const [error, serError] = useState();
-	const [isLoading, setIsLoading] = useState(false);
+	const [isNamesLoading, setIsNamesLoading] = useState(false);
+	const [isCurrLoading, setIsCurrLoading] = useState(false);
 
 	let sourceAmount;
 	let targetAmount;
@@ -63,16 +64,17 @@ const CurrencyConverter = () => {
 	const fetchCurrencyNames = useCallback(
 		async () => {
 			try {
+				setIsNamesLoading(true);
 				const response = await getCurrencyNames();
 				const names = modifyNames(response.data);
 				!sourceCurrency && setSourceCurrency(names[0].abw)
 				!targetCurrency && setTargetCurrency(names[1].abw)
 				setCurrencyNames(names);
-				setIsLoading(false);
+				setIsNamesLoading(false);
 			} catch (error) {
 				console.error('Error fetching currency names:', error);
 				serError(error);
-				setIsLoading(false);
+				setIsNamesLoading(false);
 			}
 		},
 		[sourceCurrency, targetCurrency],
@@ -81,20 +83,20 @@ const CurrencyConverter = () => {
 	const fetchExchangeRate = useCallback(
 		async () => {
 			try {
+				setIsCurrLoading(true)
 				const response = await getCurrencyRates();
 				setExchangeRate(calculateExchangeRate(sourceCurrency, targetCurrency, response.data));
+				setIsCurrLoading(false);
 			} catch (error) {
 				console.error('Error fetching exchange rate:', error);
 				serError(error);
-				setIsLoading(false);
-				setIsLoading(false);
+				setIsCurrLoading(false);
 			}
 		},
 		[sourceCurrency, targetCurrency],
 	);
 
 	useEffect(() => {
-		setIsLoading(true);
 		fetchCurrencyNames();
 		fetchExchangeRate();
 	}, [fetchCurrencyNames, fetchExchangeRate, sourceCurrency, targetCurrency]);
@@ -123,7 +125,7 @@ const CurrencyConverter = () => {
 		);
 	};
 
-	if (isLoading) {
+	if (isNamesLoading || isCurrLoading) {
 		return (
 			<Container>
 				<MainContent>
