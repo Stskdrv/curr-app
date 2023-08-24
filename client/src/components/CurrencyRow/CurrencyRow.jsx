@@ -6,7 +6,6 @@ const RowWrapper = styled.div`
   margin-bottom: 1rem;
 `;
 
-
 const StyledInput = styled.input`
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -23,8 +22,9 @@ const StyledSelect = styled.select`
   width: 100%;
 `;
 
-const ErrorText = styled.p`
+const ErrorText = styled.div`
   color: red;
+  margin-top: -10px;
 `;
 
 
@@ -40,15 +40,25 @@ const CurrencyRow = ({ amount, handleChangeAmount, selectedCurrency, handleChang
         return /^\d+(\.\d{2})?$/.test(inputValue);
     };
 
+    const handleKeyPress = (e) => {
+        const keyCode = e.which || e.keyCode;
+        const validKeyCodes = [8, 9, 13, 27, 46, 190, 110];
+        const isValidKeyCode = validKeyCodes.includes(keyCode);
+        
+        if (!isValidKeyCode && !/\d/.test(String.fromCharCode(keyCode))) {
+          e.preventDefault();
+        }
+      };
+
     return (
         <>
             <RowWrapper>
                 <StyledInput
                     type="number"
-                    inputMode="numeric"
                     placeholder='0.00'
                     value={amount}
                     onChange={handleChangeAmount}
+                    onKeyDown={handleKeyPress}
                 />
                 <StyledSelect
                     value={selectedCurrency}
